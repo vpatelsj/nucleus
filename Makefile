@@ -7,12 +7,14 @@ build:
 	@echo "✓ Build complete: bin/nucleus"
 
 # Install Kubernetes master node with Cilium CNI
-install: build
+install:
+	@if [ ! -f bin/nucleus ]; then $(MAKE) build; fi
 	@echo "Starting Kubernetes installation..."
 	@sudo ./bin/nucleus install
 
 # Cleanup Kubernetes installation
-cleanup: build
+cleanup:
+	@if [ ! -f bin/nucleus ]; then $(MAKE) build; fi
 	@echo "Starting cleanup..."
 	@sudo ./bin/nucleus cleanup
 

@@ -14,7 +14,7 @@ func Cleanup() error {
 	}{
 		{"Resetting kubeadm", resetKubeadm},
 		{"Removing kubectl configuration", removeKubectlConfig},
-		{"Stopping Docker containers", stopDockerContainers},
+		{"Stopping containerd containers", stopContainerdContainers},
 		{"Removing Kubernetes packages", removeKubernetesPackages},
 		{"Cleaning up directories", cleanupDirectories},
 		{"Removing repository sources", removeRepoSources},
@@ -47,15 +47,15 @@ func removeKubectlConfig() error {
 	return os.RemoveAll(homeDir + "/.kube")
 }
 
-func stopDockerContainers() error {
-	// Stop all containers
-	cmd := exec.Command("bash", "-c", "docker stop $(docker ps -aq) 2>/dev/null || true")
+func stopContainerdContainers() error {
+	// Stop containerd service which will clean up containers
+	cmd := exec.Command("systemctl", "stop", "containerd")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Run()
+	runSudo(cmd)
 
-	// Remove all containers
-	cmd = exec.Command("bash", "-c", "docker rm $(docker ps -aq) 2>/dev/null || true")
+	// Clean up containerd namespaces and containers
+	cmd = exec.Command("bash", "-c", "ctr -n k8s.io containers rm $(ctr -n k8s.io containers ls -q) 2>/dev/null || true")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()

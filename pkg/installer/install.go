@@ -16,8 +16,9 @@ func Install() error {
 	}{
 		{"Enabling systemd in WSL", enableSystemd},
 		{"Installing prerequisites", installPrerequisites},
-		{"Installing Docker", installDocker},
+		{"Installing containerd", installContainerd},
 		{"Installing Kubernetes tools", installKubernetes},
+		{"Configuring containerd for Kubernetes", configureContainerd},
 		{"Disabling swap", disableSwap},
 		{"Initializing Kubernetes master", initKubeadm},
 		{"Configuring kubectl", configureKubectl},
@@ -80,8 +81,8 @@ systemd=true
 	return nil
 }
 
-func installDocker() error {
-	// Add Docker GPG key
+func installContainerd() error {
+	// Add Docker GPG key (needed for containerd.io package)
 	cmd := exec.Command("bash", "-c", "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg --yes")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -89,7 +90,7 @@ func installDocker() error {
 		return err
 	}
 
-	// Add Docker repository
+	// Add Docker repository (for containerd.io package)
 	arch := getArch()
 	lsbRelease := getLsbRelease()
 	repoLine := fmt.Sprintf("deb [arch=%s signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu %s stable", arch, lsbRelease)
@@ -99,13 +100,49 @@ func installDocker() error {
 		return err
 	}
 
-	// Install Docker
+	// Install containerd
 	commands := [][]string{
 		{"apt-get", "update"},
-		{"apt-get", "install", "-y", "docker-ce", "docker-ce-cli", "containerd.io"},
-		{"usermod", "-aG", "docker", os.Getenv("USER")},
+		{"apt-get", "install", "-y", "containerd.io"},
 	}
 	return runCommands(commands)
+}
+
+func configureContainerd() error {
+	fmt.Println("  Generating default containerd configuration...")
+	
+	// Create containerd config directory
+	cmd := exec.Command("mkdir", "-p", "/etc/containerd")
+	if err := runSudo(cmd); err != nil {
+		return fmt.Errorf("failed to create containerd config directory: %w", err)
+	}
+
+	// Generate default config
+	cmd = exec.Command("bash", "-c", "containerd config default > /etc/containerd/config.toml")
+	if err := runSudo(cmd); err != nil {
+		return fmt.Errorf("failed to generate containerd config: %w", err)
+	}
+
+	// Enable SystemdCgroup
+	cmd = exec.Command("sed", "-i", "s/SystemdCgroup = false/SystemdCgroup = true/g", "/etc/containerd/config.toml")
+	if err := runSudo(cmd); err != nil {
+		return fmt.Errorf("failed to enable SystemdCgroup: %w", err)
+	}
+
+	// Restart containerd to apply configuration
+	commands := [][]string{
+		{"systemctl", "daemon-reload"},
+		{"systemctl", "enable", "containerd"},
+		{"systemctl", "restart", "containerd"},
+	}
+	if err := runCommands(commands); err != nil {
+		return fmt.Errorf("failed to restart containerd: %w", err)
+	}
+
+	fmt.Println("  Waiting for containerd to initialize...")
+	time.Sleep(5 * time.Second)
+	
+	return nil
 }
 
 func installKubernetes() error {
@@ -144,7 +181,9 @@ func disableSwap() error {
 }
 
 func initKubeadm() error {
-	cmd := exec.Command("kubeadm", "init", "--pod-network-cidr=10.0.0.0/16")
+	cmd := exec.Command("kubeadm", "init", 
+		"--pod-network-cidr=10.0.0.0/16", 
+		"--cri-socket=unix:///run/containerd/containerd.sock")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return runSudo(cmd)
