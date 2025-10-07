@@ -1,0 +1,23 @@
+- [x] Clarify Project Requirements
+  - Go-based Kubernetes installer with Makefile automation
+- [x] Scaffold the Project
+  - Project directory and README created
+  - Go module initialized
+  - Go installed via snap
+- [x] Customize the Project
+  - Created main.go with CLI interface
+  - Implemented installer package with install and cleanup functions
+  - Created Makefile with build, install, cleanup, and other targets
+  - Updated documentation for Go project
+- [ ] Install Required Extensions
+- [x] Compile the Project
+  - Successfully built nucleus binary
+  - Binary tested and working
+- [ ] Create and Run Task
+- [ ] Launch the Project
+- [x] Ensure Documentation is Complete
+  - README.md updated with Go project info
+  - USAGE.md updated with Makefile commands
+  - .gitignore added
+
+Work through each checklist item systematically. Update this file as you complete each step.

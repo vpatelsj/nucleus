@@ -1,0 +1,22 @@
+# Binaries
+bin/
+nucleus
+
+# Go workspace files
+*.work
+*.work.sum
+
+# Test coverage
+*.out
+coverage.html
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
