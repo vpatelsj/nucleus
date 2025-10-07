@@ -56,7 +56,7 @@ func enableSystemd() error {
 	// Check if /etc/wsl.conf exists and has systemd enabled
 	wslConfPath := "/etc/wsl.conf"
 	content, err := os.ReadFile(wslConfPath)
-	
+
 	needsRestart := false
 	if err != nil || !strings.Contains(string(content), "[boot]") || !strings.Contains(string(content), "systemd=true") {
 		// Create or update /etc/wsl.conf
@@ -94,7 +94,7 @@ func installContainerd() error {
 	arch := getArch()
 	lsbRelease := getLsbRelease()
 	repoLine := fmt.Sprintf("deb [arch=%s signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu %s stable", arch, lsbRelease)
-	
+
 	cmd = exec.Command("bash", "-c", fmt.Sprintf("echo '%s' > /etc/apt/sources.list.d/docker.list", repoLine))
 	if err := runSudo(cmd); err != nil {
 		return err
@@ -110,7 +110,7 @@ func installContainerd() error {
 
 func configureContainerd() error {
 	fmt.Println("  Generating default containerd configuration...")
-	
+
 	// Create containerd config directory
 	cmd := exec.Command("mkdir", "-p", "/etc/containerd")
 	if err := runSudo(cmd); err != nil {
@@ -141,7 +141,7 @@ func configureContainerd() error {
 
 	fmt.Println("  Waiting for containerd to initialize...")
 	time.Sleep(5 * time.Second)
-	
+
 	return nil
 }
 
@@ -181,8 +181,8 @@ func disableSwap() error {
 }
 
 func initKubeadm() error {
-	cmd := exec.Command("kubeadm", "init", 
-		"--pod-network-cidr=10.0.0.0/16", 
+	cmd := exec.Command("kubeadm", "init",
+		"--pod-network-cidr=10.0.0.0/16",
 		"--cri-socket=unix:///run/containerd/containerd.sock")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -195,7 +195,7 @@ func configureKubectl() error {
 	if sudoUser == "" {
 		sudoUser = os.Getenv("USER")
 	}
-	
+
 	// Get user's home directory
 	var homeDir string
 	if sudoUser != "" && sudoUser != "root" {
@@ -209,7 +209,7 @@ func configureKubectl() error {
 	}
 
 	kubeDir := homeDir + "/.kube"
-	
+
 	// Create .kube directory as the actual user
 	cmd := exec.Command("mkdir", "-p", kubeDir)
 	if sudoUser != "" && sudoUser != "root" {
@@ -258,7 +258,7 @@ func configureKubectl() error {
 func installCilium() error {
 	// Install Cilium CLI first
 	fmt.Println("  Installing Cilium CLI...")
-	
+
 	// Determine architecture
 	arch := "amd64"
 	cmd := exec.Command("uname", "-m")
@@ -266,7 +266,7 @@ func installCilium() error {
 	if strings.Contains(string(output), "aarch64") {
 		arch = "arm64"
 	}
-	
+
 	// Get latest stable version
 	cmd = exec.Command("bash", "-c", "curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt")
 	versionOutput, err := cmd.Output()
@@ -274,7 +274,7 @@ func installCilium() error {
 		return fmt.Errorf("failed to get Cilium CLI version: %w", err)
 	}
 	version := strings.TrimSpace(string(versionOutput))
-	
+
 	// Download Cilium CLI
 	downloadURL := fmt.Sprintf("https://github.com/cilium/cilium-cli/releases/download/%s/cilium-linux-%s.tar.gz", version, arch)
 	cmd = exec.Command("bash", "-c", fmt.Sprintf("curl -L --fail --remote-name-all %s{,.sha256sum}", downloadURL))
@@ -334,7 +334,7 @@ func restartContainerRuntime() error {
 	if err := runCommands(commands); err != nil {
 		return err
 	}
-	
+
 	fmt.Println("  Restarting kubelet...")
 	commands = [][]string{
 		{"systemctl", "restart", "kubelet"},
@@ -342,11 +342,11 @@ func restartContainerRuntime() error {
 	if err := runCommands(commands); err != nil {
 		return err
 	}
-	
+
 	// Wait for kubelet to settle
 	fmt.Println("  Waiting for kubelet to initialize CNI...")
 	time.Sleep(15 * time.Second)
-	
+
 	return nil
 }
 

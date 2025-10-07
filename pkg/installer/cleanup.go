@@ -69,7 +69,7 @@ func removeKubernetesPackages() error {
 		{"apt-get", "purge", "-y", "kubelet", "kubeadm", "kubectl"},
 		{"apt-get", "autoremove", "-y"},
 	}
-	
+
 	for _, cmdArgs := range commands {
 		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 		cmd.Stdout = os.Stdout
@@ -113,7 +113,7 @@ func removeRepoSources() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	runSudo(cmd)
-	
+
 	return nil
 }
 
